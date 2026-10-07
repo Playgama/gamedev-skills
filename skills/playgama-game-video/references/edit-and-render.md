@@ -7,23 +7,32 @@ renderer seeks it frame by frame. The template in `assets/template/` was checked
 ## Start from the template
 
 ```bash
-cp -r assets/template my-game-video && cd my-game-video
-curl -o gsap.min.js https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js
-mkdir -p clips audio      # clips/gameplay-1.mp4 …, audio/music.mp3, audio/voice.mp3
-npx hyperframes@0.8.38 check .                                   # lint + runtime + layout
+node scripts/new-video.mjs my-game-video     # the template, gsap.min.js, puppeteer; clips/ audio/ vo/ stills/
+cd my-game-video
+npx hyperframes@0.8.38 check .               # lint + runtime + layout
 npx hyperframes@0.8.38 render . -o renders/my-game.mp4 --quality high
 ```
+
+The same commands work in PowerShell on Windows. The clips go in `clips/`, the music and `voice.wav` (from
+`voice.mjs lay`) in `audio/`.
+
+The template is 1920x1080. `--resolution 4k` on `render` gives a 3840x2160 master of the same composition; film
+at that size too, so the gameplay stays sharp.
 
 What to change:
 - **The game's look:** the theme block at the top of the `<style>`: its colours, its three fonts, its panels' shape
   (`references/game-look.md`). Leave the sting's colours alone: they are Playgama's.
 - **Gameplay clips:** each `<video class="clip game">` has a `data-start` and a `data-duration` in seconds. Add or
   remove clips as the script needs; keep them `muted`.
+  - One long take can give every shot: `data-media-start="42.0"` on a `<video>` plays its file from 42 s in.
 - **The title and the end card:** their text, and their `data-start` and `data-duration`.
 - **Audio:** `<audio>` elements with `data-start` and `data-duration`. `data-volume` sets the gain (1 = 0 dB).
 - **The root's `data-duration`:** the whole video's length. The logo's container (`#brand`) should run the same
   length, so the bug stays to the end.
-- **The tweens after 3.4 s** in the script block, at the new times. Leave the sting's tweens as they are.
+- **The tweens after the sting** in the script block, at the new times. Leave the sting's own tweens as they are.
+- **A cold open before the sting** (a "how I made it" story): set `S`, the sting's start, in the script to the cold
+  open's length. Add the same to the `data-start` of `#plate`, `#glow` and `#brand`, and take it off `#brand`'s
+  `data-duration`.
 
 ## The rules that keep a render correct
 
@@ -69,7 +78,8 @@ Every card wears the game's look: its panels' fill, outline and corners (`--game
 ## Before calling it done
 
 1. `npx hyperframes@0.8.38 check .` passes. Read the warnings too.
-2. `npx hyperframes@0.8.38 snapshot . --at 0.5,3,10,20` gives quick frames before a full render.
+2. `npx hyperframes@0.8.38 snapshot . --at 0.5,3,10,20 --describe false` gives quick frames before a full render.
+   Always pass `--describe false`: otherwise it sends the frames to Gemini when a Gemini or Google key is set.
 3. Render, then pull a frame every few seconds and look at every one:
    `ffmpeg -i renders/my-game.mp4 -vf fps=1/3 frames/%03d.png`
    Look for text cut off at the edges, the bug covering the game's HUD, a clip freezing on its last frame, and

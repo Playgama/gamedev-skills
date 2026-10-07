@@ -10,14 +10,18 @@
 //        [--pre 2]                 seconds the game runs before the first frame is kept (menus fading, things settling)
 //        [--still 3.5]             write one PNG of that moment instead of a clip (test a take quickly)
 //        [--seed 7]                Math.random's seed, so a take repeats exactly
+//        [--chrome-args "--no-sandbox"]   extra Chrome flags (or CHROME_ARGS), for a Linux server or a container
 //
-// Needs Node 18+, ffmpeg on the PATH and puppeteer (npm i puppeteer), or puppeteer-core with CHROME=/path/to/chrome.
-// The game must run from a URL (a local dev server or a static server over the build). No sound is recorded: lay the
-// game's own sound files in the edit, at the moments the picture shows.
+// Needs Node 22+, ffmpeg on the PATH and puppeteer, found in the folder it runs from (new-video.mjs installs it into the
+// video's folder) or next to this script; or puppeteer-core with CHROME=/path/to/chrome. Works on macOS, Linux and
+// Windows. The game must run from a URL (a local
+// dev server or a static server over the build). No sound is recorded: lay the game's own sound files in the edit, at
+// the moments the picture shows.
 import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { need, hint, loadPuppeteer, chromeArgs, launchHint } from './system.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const arg = (n, d) => { const i = process.argv.indexOf('--' + n); return i > 0 ? process.argv[i + 1] : d; };
@@ -30,14 +34,17 @@ const read = (f) => (f ? readFileSync(path.resolve(f), 'utf8') : '');
 const setup = read(arg('setup')), each = read(arg('each'));
 const readyExpr = arg('ready', '');
 
-let puppeteer;
-try { puppeteer = (await import('puppeteer')).default; } catch { puppeteer = (await import('puppeteer-core')).default; }
-const browser = await puppeteer.launch({
-  headless: true,
-  ...(process.env.CHROME ? { executablePath: process.env.CHROME } : {}),
-  args: ['--hide-scrollbars', '--mute-audio', '--enable-gpu', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required',
-    ...(process.platform === 'darwin' ? ['--use-angle=metal'] : [])],
-});
+if (!STILL) need('ffmpeg');
+const pp = await loadPuppeteer();
+if (!pp) { console.error(`puppeteer is not installed. In the game's project, or next to this script: ${hint('puppeteer')}`); process.exit(1); }
+if (pp.name === 'puppeteer-core' && !process.env.CHROME) { console.error('puppeteer-core needs CHROME=/path/to/chrome'); process.exit(1); }
+let browser;
+try {
+  browser = await pp.lib.launch({ headless: true, ...(process.env.CHROME ? { executablePath: process.env.CHROME } : {}),
+    args: chromeArgs(arg('chrome-args', '')) });
+} catch (e) {
+  console.error(`Chrome didn't start: ${String(e.message || e).split('\n')[0]}\n  ${launchHint()}`); process.exit(1);
+}
 const page = await browser.newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
@@ -49,12 +56,18 @@ await page.goto(url, { waitUntil: 'domcontentloaded' });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const step = () => page.evaluate((ms) => window.__vt.step(ms), 1000 / FPS);
 // loading happens in real time; the game's clock moves one frame per pump until it is ready
-let ready = false;
+let ready = false, why = '';
 for (let i = 0; i < 6000 && !ready; i++) {
   await step(); await sleep(15);
-  ready = readyExpr ? await page.evaluate(`!!(${readyExpr})`).catch(() => false) : i >= FPS;
+  ready = readyExpr
+    ? await page.evaluate(`!!(${readyExpr})`).catch((e) => { why = String(e.message || e).split('\n')[0]; return false; })
+    : i >= FPS;
 }
-if (!ready) { console.error('the game never got ready (check --ready)'); await browser.close(); process.exit(1); }
+if (!ready) {
+  // the last error the expression threw, if any: a typo or a hook the page doesn't have shows up here
+  console.error('the game never got ready (check --ready)' + (why ? `; it last threw: ${why}` : ''));
+  await browser.close(); process.exit(1);
+}
 await page.evaluate((s) => { window.__vt.seed(s); window.__vt.setDate(1759500000000 + s); }, +arg('seed', 7));
 if (setup) await page.evaluate(setup);
 const tick = (t) => (each ? page.evaluate(`((t) => { ${each} })(${t})`) : null);

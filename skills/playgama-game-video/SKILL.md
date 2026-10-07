@@ -21,7 +21,9 @@ The bundled files:
 | `assets/sting.html` | The intro animation alone, in plain CSS (7 KB, no libraries): drop it into any page or video tool |
 | `assets/playgama-ai-sting.html` | The same animation as a review page with play, speed and scrub controls, and the timeline and colours spelled out. Open it in a browser and drop a screenshot of the game on it to see the logo over the game, or hand it to a designer |
 | `scripts/film.mjs`, `scripts/vclock.js` | Film any web game frame by frame into a smooth MP4 at any size |
+| `scripts/doctor.mjs`, `scripts/new-video.mjs` | Check the machine and say what to install; make the video's folder (template, gsap, puppeteer) |
 | `scripts/palette.mjs` | The colours a game uses, sampled from its screenshots, for when its code has no theme |
+| `scripts/voice.mjs` | The voice-over: takes from ElevenLabs, OpenAI, Gemini or Cartesia (or a free draft voice), a page to pick them by ear, and the voice track with the music ducked under it |
 | `references/story-and-script.md` | Formats, beat sheets with real example lines, rules for on-screen material |
 | `references/game-look.md` | Taking the game's look: where to find it, colours, type, panels, motion, sound, the template's theme |
 | `references/filming.md` | How to film takes: readiness, setup and per-frame scripts, choosing moments, the first frame |
@@ -30,13 +32,18 @@ The bundled files:
 
 ## What you need
 
-- **To film:** Node 18+, ffmpeg on the PATH, and puppeteer installed in this skill's folder (`npm i puppeteer` there):
-  Node looks for it next to `scripts/film.mjs`, not in the folder you run it from. The game must run from a URL: a dev
-  server, or a static server over the build.
-- **To assemble and render:** HyperFrames (`npx hyperframes@0.8.38`, nothing to install) and GSAP's `gsap.min.js`
-  beside the template.
-- **For the voice, if not your own:** a text-to-speech service, and Whisper or another speech-to-text to check the
-  takes.
+It works the same on macOS, Linux and Windows.
+1. `node scripts/doctor.mjs` checks the machine and says what to install on it.
+2. `node scripts/new-video.mjs <folder>` makes the video's folder: the template, `gsap.min.js`, and puppeteer for
+   filming. Run every later command from that folder.
+
+- **To film:** Node 22+ (HyperFrames needs it), ffmpeg and ffprobe on the PATH, and puppeteer. `film.mjs` finds it in
+  the folder it runs from, or next to the script. The game must run from a URL: a dev server, or a static server over
+  the build.
+- **To assemble and render:** HyperFrames (`npx hyperframes@0.8.38`; its first run downloads about 370 MB of packages
+  and a headless browser).
+- **For the voice, if not your own:** a key for ElevenLabs, or for another service `scripts/voice.mjs` works with,
+  set once (`references/voice-and-music.md`), and Whisper or another speech-to-text to check the takes.
 - **For music:** an instrumental track you are allowed to use.
 
 ## The workflow
@@ -57,7 +64,7 @@ Work in this order. Each step feeds the next, and the two approval points save h
    the game's own controls or debug hooks.
 6. **Make the stills** in the game's look. Use real code with real line numbers, the real prompt and the agent's
    steps, web pages, and the covers.
-7. **Record the voice and pick music** (`references/voice-and-music.md`). A human listens to the voice takes, because
+7. **Record the voice and pick music** (`references/voice-and-music.md`, `scripts/voice.mjs`). A human listens to the voice takes, because
    text-to-speech fails in ways no transcript catches.
 8. **Assemble and render** with the template (`references/edit-and-render.md`). Run the checks, render, pull a frame
    every few seconds and look at every one before calling it done.
@@ -69,7 +76,7 @@ Work in this order. Each step feeds the next, and the two approval points save h
 | Video | Shape | Length | Opens on |
 |---|---|---|---|
 | Short / Reels / TikTok | 9:16, 1080x1920 | 15–35 s | **gameplay in the first frame**; the logo as a small corner bug only |
-| Trailer / promo | 16:9, 1920x1080 or 2560x1440 | 30–90 s | the sting (3 s), then the best gameplay |
+| Trailer / promo | 16:9, 1920x1080 | 30–90 s | the sting (3 s), then the best gameplay |
 | "How I made it" story | 16:9 | 3–6 min | gameplay with the hook line, then the sting or a title |
 | Tutorial ("publish with Playgama MCP") | 16:9 | 1–3 min per part | the sting, then the result first and the steps after |
 
@@ -112,7 +119,7 @@ review pages.
   - the thumbnail and the end card;
   - the sting over the game, to check that the corner bug clears its HUD. Drop the screenshot on
     `assets/playgama-ai-sting.html`, or put the first clip in the template and run
-    `npx hyperframes@0.8.38 snapshot . --at 3.5`.
+    `npx hyperframes@0.8.38 snapshot . --at 3.5 --describe false`.
 - **Vertical cuts** are filmed at 1080x1920, with the game's camera reframed for it.
 - **If the game can't run here** (a native build, a login wall, an online-only game), ask the developer for screen
   recordings and screenshots at the delivery size, with no cursor or notifications on screen. Never fill a gap with
@@ -144,8 +151,8 @@ screenshot or a clip of the game (see "Pictures of the game").
 - **Hand-off:** the whole logo flies to the top-right corner at 19% size, 39 px from the top and the right of a
   1920×1080 frame (2.75 s, over 0.62 s). It stays there as the bug while the gameplay fades up underneath (3.0 s).
 - **The parts** are drawn from the official file's own shapes at 240 px tall, so the sting ends on exactly the logo.
-- **Change:** keep the timing. Retime only what comes after 3.4 s. For a 9:16 cut, drop the build and start the bug
-  in the corner from frame one.
+- **Change:** keep its timing. To put a cold open first (a story), start the sting later: set `S` in the template
+  (`references/edit-and-render.md`). For a 9:16 cut, drop the build and start the bug in the corner from frame one.
 
 ## Rules that came from mistakes
 
@@ -166,9 +173,13 @@ screenshot or a clip of the game (see "Pictures of the game").
 - **Check every voice take** against its text (a transcript), and have a person listen. Text-to-speech has repeated a
   sentence, added one nobody wrote, read its own instructions aloud and swallowed a last syllable, each in a take that
   sounded fine on its own.
-- **The first frame is gameplay that reads in under a second, not a menu or a loading screen.**
+- **The first gameplay frame reads in under a second, not a menu or a loading screen.**
+  - A Short opens on it. A trailer or a story reaches it straight after the sting or the cold open.
   - Film the best moment, not the beginning of a level.
-  - Text in the first two seconds: at most four huge words.
+  - Text in the first two seconds of gameplay: at most four huge words.
+- **Footage stays on the machine.** HyperFrames' `snapshot` sends frames to Gemini for a description whenever a
+  Gemini or Google key is set, and it reads a `.env` in the video's folder. Pass `--describe false` to every
+  `snapshot`, and keep voice keys in `voice.mjs`'s shared key file, not in the video's folder.
 
 ## When you're done
 

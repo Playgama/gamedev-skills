@@ -10,15 +10,16 @@ Screen recorders drop frames, and a heavy WebGL game at 1440p rarely holds 60 fp
 ## Setup
 
 ```bash
-npm i puppeteer            # or puppeteer-core plus CHROME=/path/to/chrome
-# ffmpeg must be on the PATH
 npx serve dist -l 5173     # or the game's own dev server
 node scripts/film.mjs --url http://localhost:5173 --out clips/gameplay-1.mp4 --seconds 6 --size 1920x1080 \
   --ready "window.game && window.game.ready" --setup takes/start.js --each takes/walk.js --pre 2
 ```
 
-- **Install puppeteer in this skill's folder**, or in a folder above it. Node looks for it next to `film.mjs`, not in
-  the folder you run it from. Or copy `film.mjs` and `vclock.js` into the game's project and install it there.
+Run it from the video's folder (on Windows, PowerShell puts the line breaks with a backtick, or keep it on one line).
+- **Puppeteer:** `film.mjs` finds it in the folder it runs from (`new-video.mjs` installs it there), or next to the
+  script. Or use puppeteer-core with `CHROME=/path/to/chrome`. `doctor.mjs` says what is missing.
+- **On a Linux server:** `--chrome-args "--no-sandbox"` (or `CHROME_ARGS`) in a container or under Ubuntu 24.04's
+  AppArmor, and `--enable-unsafe-swiftshader` for WebGL without a GPU.
 - `--ready` is a JavaScript expression that is true once the game can be played. Without it, filming starts 1 s after
   load. Loading itself runs in real time while the clock ticks.
 - `--setup` is a file run once when the game is ready: start a level, place the player, open a door, hide a tutorial.
@@ -35,14 +36,16 @@ A take is easiest to direct through the game's own objects.
   input.
 - **Write to what the game reads.** Set the input object's keys, the player's position, the camera's yaw. Don't try
   to simulate a person.
-- **Keyboard and mouse events** work from `--each` too:
-  `window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', key: 'w' }))`.
+- **Keyboard and mouse events** work from `--each` too. Send them where the game listens: from the document they
+  reach document and window listeners, and a listener on the canvas needs the canvas:
+  `document.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW', key: 'w', bubbles: true }))`.
 
 Some examples:
 - **Steer toward a point:** each frame, turn the yaw a little toward `atan2(dx, dz)` and hold "forward". Limit the turn
   rate so the camera pans smoothly.
 - **Make an enemy act on cue:** in `--setup`, switch off its senses (so it doesn't chase or catch), then give it goals
-  at moments in `--each` (`if (t > 1 && !sent) { enemy.goTo(x, z); sent = true }`).
+  at moments in `--each`. Keep state on `window`, because the script runs anew every frame:
+  `if (t > 1 && !window.sent) { enemy.goTo(x, z); window.sent = true }`.
 - **Bot or autopilot modes** (`?bot`, an AI driver) are perfect for long continuous takes. Filming them frame by frame
   makes them deterministic.
 - **Unity WebGL builds** run on `requestAnimationFrame` too. Drive them with
@@ -50,8 +53,16 @@ Some examples:
 
 ## Choosing the takes
 
+- **Scout first.** Film one quick pass of a whole run at 960x540 and lay it out as a contact sheet:
+  `ffmpeg -i scout.mp4 -vf "fps=1/2,scale=320:-2,tile=6x4" sheet.png`. Pick the moments from the sheet.
+  - A run filmed this way repeats: the same URL, `--seed` and `--pre` put the same moment at the same second.
+  - So the moments land in the real takes where the scout showed them.
 - **One take per beat of the script**, 4–10 s each. Film 1–2 s more than the shot needs, because the edit stretches
   shots to fit the voice.
+  - Start a take at its moment with `--pre <seconds>`. `t` in `--each` counts from the first kept frame, so timed
+    inputs move with the start.
+  - With a bot or an autopilot, one continuous take at the delivery size can give every shot instead. The edit plays
+    each shot from it with `data-media-start` (`edit-and-render.md`).
 - **Film the moment, not the level's start.** Film the wow: the boss, the jump, the chase, the escape, the funny fail.
   Skip menus and loading screens unless the beat is about them.
 - **Decide the HUD on purpose.**
@@ -65,7 +76,7 @@ Some examples:
 - **Leave the catch out.** Don't film jump scares, flashes or anything a portal's rules forbid. A promo works without
   them.
 - **Film at the delivery size.**
-  - 1920x1080 or 2560x1440 for 16:9.
+  - 1920x1080 for 16:9, the template's size (3840x2160 for a 4K render).
   - 1080x1920 for vertical. Reframe the game's own camera for vertical rather than cropping a 16:9 take: a crop
     loses the HUD and the subject.
 

@@ -1,7 +1,7 @@
 {
   "name": "gamedev-skills",
   "displayName": "Playgama gamedev skills",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Agent skills for game developers, from Playgama. playgama-game-video makes a video about your web game (a trailer, a Short, a devlog or a \"how I made it\" story) in the game's own look, opening on the Playgama AI sting.",
   "author": {
     "name": "Playgama",
@@ -10,5 +10,14 @@
   "homepage": "https://github.com/Playgama/gamedev-skills",
   "repository": "https://github.com/Playgama/gamedev-skills",
   "license": "Apache-2.0",
-  "keywords": ["gamedev", "game-video", "trailer", "devlog", "shorts", "playgama", "hyperframes", "agent-skills"]
+  "keywords": [
+    "gamedev",
+    "game-video",
+    "trailer",
+    "devlog",
+    "shorts",
+    "playgama",
+    "hyperframes",
+    "agent-skills"
+  ]
 }

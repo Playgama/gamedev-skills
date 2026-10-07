@@ -1,0 +1,30 @@
+<!doctype html>
+<!-- A tiny canvas "game" for tests/smoke.mjs: a ball on a timer driven by requestAnimationFrame and performance.now, so
+     the filmer's virtual clock moves it, and a ready flag the filmer waits for. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Smoke test game</title>
+<style>html, body { margin: 0; height: 100%; background: #12202e; } canvas { display: block; width: 100vw; height: 100vh; }</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+  const c = document.getElementById('c'), x = c.getContext('2d');
+  const fit = () => { c.width = innerWidth; c.height = innerHeight; };
+  addEventListener('resize', fit); fit();
+  const t0 = performance.now();
+  window.game = { ready: false, frames: 0 };
+  setTimeout(() => { window.game.ready = true; }, 200);
+  function frame(now) {
+    const t = (now - t0) / 1000;
+    x.fillStyle = '#12202e'; x.fillRect(0, 0, c.width, c.height);
+    x.fillStyle = '#35d06a'; x.beginPath();
+    x.arc(c.width * (0.5 + 0.35 * Math.sin(t * 2)), c.height / 2, Math.min(c.width, c.height) / 9, 0, Math.PI * 2); x.fill();
+    window.game.frames++;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>

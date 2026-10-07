@@ -2,7 +2,7 @@
 
 Agent skills for game developers, from [Playgama](https://playgama.com). Each one is a folder in the open
 [Agent Skills](https://agentskills.io) format, so it works in Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot
-and other agents that read skills.
+and other agents that read skills, on macOS, Linux and Windows.
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Format: Agent Skills](https://img.shields.io/badge/format-Agent%20Skills-9747ff.svg)](https://agentskills.io)
@@ -42,14 +42,30 @@ frame, the real prompts and the agent's steps on screen, a voice-over, rendered 
 Clone the repository, then copy the skill's folder into your agent's skills folder. Keep the folder's name: it must
 match the skill's.
 
+macOS and Linux:
+
 ```bash
 git clone https://github.com/Playgama/gamedev-skills.git
 
 # Codex, Cursor, Gemini CLI, GitHub Copilot
-cp -R gamedev-skills/skills/playgama-game-video ~/.agents/skills/
+mkdir -p ~/.agents/skills && cp -R gamedev-skills/skills/playgama-game-video ~/.agents/skills/
 
 # Claude Code, without the plugin
-cp -R gamedev-skills/skills/playgama-game-video ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -R gamedev-skills/skills/playgama-game-video ~/.claude/skills/
+```
+
+Windows (PowerShell):
+
+```powershell
+git clone https://github.com/Playgama/gamedev-skills.git
+
+# Codex, Cursor, Gemini CLI, GitHub Copilot
+New-Item -ItemType Directory -Force $HOME\.agents\skills | Out-Null
+Copy-Item -Recurse gamedev-skills\skills\playgama-game-video $HOME\.agents\skills\
+
+# Claude Code, without the plugin
+New-Item -ItemType Directory -Force $HOME\.claude\skills | Out-Null
+Copy-Item -Recurse gamedev-skills\skills\playgama-game-video $HOME\.claude\skills\
 ```
 
 | Agent | For all your projects | For one project |
@@ -61,7 +77,7 @@ cp -R gamedev-skills/skills/playgama-game-video ~/.claude/skills/
 | GitHub Copilot in VS Code | `~/.agents/skills/` or `~/.copilot/skills/` | `.agents/skills/` or `.github/skills/` |
 | Another agent that reads skills | its skills folder (see its docs) | |
 
-Each skill's own README says what it needs.
+Each skill's own README says what it needs, on each system.
 
 ## Quick start
 

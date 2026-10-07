@@ -56,14 +56,30 @@ Copy `skills/playgama-game-video` into your agent's skills folder and keep its n
 | GitHub Copilot in VS Code | `~/.agents/skills/` or `~/.copilot/skills/` | `.agents/skills/` or `.github/skills/` |
 | Another agent that reads skills | its skills folder (see its docs) | |
 
+macOS and Linux:
+
 ```bash
 git clone https://github.com/Playgama/gamedev-skills.git
 
 # Codex, Cursor, Gemini CLI, GitHub Copilot
-cp -R gamedev-skills/skills/playgama-game-video ~/.agents/skills/
+mkdir -p ~/.agents/skills && cp -R gamedev-skills/skills/playgama-game-video ~/.agents/skills/
 
 # Claude Code, without the plugin
-cp -R gamedev-skills/skills/playgama-game-video ~/.claude/skills/
+mkdir -p ~/.claude/skills && cp -R gamedev-skills/skills/playgama-game-video ~/.claude/skills/
+```
+
+Windows (PowerShell):
+
+```powershell
+git clone https://github.com/Playgama/gamedev-skills.git
+
+# Codex, Cursor, Gemini CLI, GitHub Copilot
+New-Item -ItemType Directory -Force $HOME\.agents\skills | Out-Null
+Copy-Item -Recurse gamedev-skills\skills\playgama-game-video $HOME\.agents\skills\
+
+# Claude Code, without the plugin
+New-Item -ItemType Directory -Force $HOME\.claude\skills | Out-Null
+Copy-Item -Recurse gamedev-skills\skills\playgama-game-video $HOME\.claude\skills\
 ```
 
 Without git: choose **Code → Download ZIP** on the repository, unzip it, and copy `skills/playgama-game-video` the
@@ -89,26 +105,38 @@ chat in a web browser can read the instructions, but it can't reach your game.
 
 ## What you need
 
-- **Node.js 18+** and **ffmpeg** on the PATH.
-- **Puppeteer**, where `scripts/film.mjs` can find it. Node looks for it next to the script and in the folders above
-  it, not in the folder you run the script from. So install it in this folder:
+It works on macOS, Linux and Windows. Run `node scripts/doctor.mjs` first: it checks the machine and says what to
+install on it.
 
-  ```bash
-  cd ~/.agents/skills/playgama-game-video && npm i puppeteer
-  ```
+| | macOS | Linux (Debian, Ubuntu) | Windows |
+|---|---|---|---|
+| Node.js 22+ (HyperFrames needs it) | `brew install node` | `nvm install 22` | `winget install OpenJS.NodeJS.LTS` |
+| ffmpeg, with ffprobe | `brew install ffmpeg` | `sudo apt install ffmpeg` | `winget install Gyan.FFmpeg` |
+| Chrome for filming | installed with puppeteer | `sudo npx puppeteer browsers install chrome --install-deps` | installed with puppeteer |
+| The free draft voice | built in | `sudo apt install espeak-ng` | built in |
 
-  Or use `puppeteer-core` with your own Chrome: `CHROME=/path/to/chrome`. With the Claude Code plugin, let the agent
-  install it: it knows where the plugin keeps the skill.
+- **The video's folder:** `node scripts/new-video.mjs my-game-video` makes it from the template, with `gsap.min.js` and
+  puppeteer (and its Chrome) inside. Run every later command from that folder.
 - **Your game, running from a URL:** its dev server, or a static server over its build.
-- **HyperFrames** to render the video. It runs through `npx hyperframes@0.8.38`, so there is nothing to install. On
-  its first render it downloads its own headless browser.
-- **GSAP:** `gsap.min.js` next to the video template. `references/edit-and-render.md` has the download command.
-- **For a voice-over that isn't yours:** a text-to-speech service, and a speech-to-text tool such as Whisper to check
-  the takes.
+- **HyperFrames** renders the video through `npx hyperframes@0.8.38`, with nothing to install by hand. Its first run
+  downloads about 370 MB of packages and a headless browser.
+- **For a voice-over that isn't yours:** a key for ElevenLabs, OpenAI, Google Gemini or Cartesia, set once with
+  `node scripts/voice.mjs keys --init` (it never prints a key), and a speech-to-text tool such as Whisper to check
+  the takes. `--provider draft` makes a free draft voice with no key.
 - **Music** you are allowed to use, or the game's own.
 
-To keep your footage on your machine, leave `GEMINI_API_KEY` unset while the agent works. With a key, HyperFrames'
-`snapshot` command sends frames to Gemini for a description. `HYPERFRAMES_NO_TELEMETRY=1` (or `DO_NOT_TRACK=1`)
+**On Linux:**
+- In a container, or on Ubuntu 24.04, where AppArmor blocks Chrome's sandbox: `CHROME_ARGS="--no-sandbox"`.
+- Without a GPU, WebGL needs `CHROME_ARGS="--enable-unsafe-swiftshader"`.
+- On ARM there is no Chrome for Testing: `sudo apt install chromium`, `npm i -D puppeteer-core` in the video's folder,
+  and `CHROME=/usr/bin/chromium`.
+
+**On Windows:** the commands are the same in PowerShell. Open a new terminal after installing ffmpeg, so it is on the
+PATH. A variable for the session is set with `$env:CHROME = "C:\path\to\chrome.exe"`.
+
+Your footage stays on your machine: every `snapshot` command in this skill runs with `--describe false`. Without it,
+HyperFrames sends frames to Gemini for a description whenever a Gemini or Google key is set, and it reads a `.env` in
+the video's folder, so keep voice keys in the shared key file. `HYPERFRAMES_NO_TELEMETRY=1` (or `DO_NOT_TRACK=1`)
 switches off its telemetry.
 
 ## Limits
@@ -118,7 +146,7 @@ switches off its telemetry.
 - **No sound in the footage.** Filming frame by frame records no audio, so the game's own sound files go in during
   the edit.
 - **A person listens to the voice.** Text-to-speech makes mistakes that a transcript can't catch.
-- **Rendering takes minutes,** and longer for a long video at 2560x1440.
+- **Rendering takes minutes,** and longer for a long video or a 4K render (`--resolution 4k`).
 
 ## What's inside
 
@@ -127,7 +155,11 @@ switches off its telemetry.
 | `SKILL.md` | The instructions the agent follows |
 | `references/` | Story and script, the game's look, filming, voice and music, editing and rendering |
 | `scripts/film.mjs`, `scripts/vclock.js` | Film any web game frame by frame into a smooth MP4, or take a screenshot of it |
+| `scripts/doctor.mjs` | Check the machine (macOS, Linux or Windows) and say what to install |
+| `scripts/new-video.mjs` | Make the video's folder: the template, `gsap.min.js`, puppeteer |
 | `scripts/palette.mjs` | Sample the colours a game uses from its screenshots |
+| `scripts/voice.mjs` | Make the voice-over: takes from ElevenLabs, OpenAI, Gemini or Cartesia, a page to pick them by ear, the voice track with the music ducked under it |
+| `scripts/system.mjs` | What the scripts share: install hints for each system, finding puppeteer, Chrome's flags, the voice keys |
 | `assets/template/` | A HyperFrames starter video: the sting, gameplay slots, a title, an end card, and one theme block for the game's look |
 | `assets/sting.html` | The intro sting alone, in plain CSS |
 | `assets/playgama-ai-sting.html` | The sting as a review page. Drop a screenshot of your game on it to see the logo over your game |

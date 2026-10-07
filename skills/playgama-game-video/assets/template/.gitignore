@@ -1,0 +1,7 @@
+# keys for scripts/voice.mjs, if you keep them in this folder
+.env
+# renders and HyperFrames' snapshots
+renders/
+snapshots/
+# puppeteer, installed by scripts/new-video.mjs
+node_modules/

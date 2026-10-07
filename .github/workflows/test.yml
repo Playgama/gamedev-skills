@@ -1,0 +1,33 @@
+name: test
+
+# The skill's scripts on Linux and Windows (macOS is where it was made): tests/smoke.mjs films a tiny canvas game,
+# samples its colours, makes a draft voice and a video folder.
+on:
+  push:
+    paths: ['skills/**', 'tests/**', '.github/workflows/test.yml']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: ffmpeg and espeak-ng (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg espeak-ng
+      - name: ffmpeg (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg -y --no-progress
+      - run: npm i --no-save puppeteer
+      - run: node tests/smoke.mjs
+        env:
+          # Ubuntu 24.04's AppArmor blocks Chrome's sandbox for unprivileged users
+          CHROME_ARGS: ${{ runner.os == 'Linux' && '--no-sandbox' || '' }}
