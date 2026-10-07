@@ -1,0 +1,14 @@
+{
+  "name": "playgama",
+  "description": "Agent skills for game developers, from Playgama.",
+  "owner": {
+    "name": "Playgama"
+  },
+  "plugins": [
+    {
+      "name": "gamedev-skills",
+      "source": "./",
+      "description": "Agent skills for game developers. playgama-game-video makes a video about your web game in the game's own look, opening on the Playgama AI sting."
+    }
+  ]
+}

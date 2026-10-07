@@ -1,0 +1,58 @@
+<!doctype html>
+<!-- The Playgama AI intro sting: about 3 s, built from the official logo (playgama-ai-logo.svg), on a 1920x1080 stage
+     scaled to the window. Plain CSS animations, no libraries. Click anywhere to play it again. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Playgama AI sting</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0e0e10; overflow: hidden; }
+  .stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; background: #0e0e10; cursor: pointer; }
+  .glow { position: absolute; }
+
+      /* the Playgama AI logo, in parts so it can be animated: sizes and gaps from assets/playgama-ai-logo.svg */
+      .glow { inset: auto; left: 50%; top: 50%; width: 1500px; height: 900px; margin: -450px 0 0 -750px; border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(151, 71, 255, 0.42), rgba(151, 71, 255, 0.12) 55%, rgba(151, 71, 255, 0)); }
+      .badge { position: absolute; left: 50%; top: 50%; width: 1066.386px; height: 240px; margin: -120px 0 0 -533.193px;
+        transform-origin: 50% 50%; }
+      .pill { position: absolute; left: 0; top: 0; width: 823.605px; height: 240px; border-radius: 120px; background: #9747ff;
+        overflow: hidden; transform-origin: 50% 50%; }
+      .shine { position: absolute; top: -30%; bottom: -30%; left: 38%; width: 24%;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0)); }
+      .word { position: absolute; left: 88.511px; top: 60.226px; width: 646.599px; height: 131.958px; overflow: visible; }
+      .aibox { position: absolute; left: 823.605px; top: 9.031px; width: 241.786px; height: 221.938px; transform-origin: 50% 50%; }
+
+  /* the sting in plain CSS animations: the same times and easings as the video template (GSAP) */
+  .glow { animation: glow-in 0.9s cubic-bezier(0.5, 1, 0.89, 1) 0.05s both, glow-out 0.4s cubic-bezier(0.5, 1, 0.89, 1) 2.75s forwards; }
+  .pill { animation: grow 0.55s cubic-bezier(0.33, 1, 0.68, 1) 0.05s both; }
+  .word { animation: wipe 0.5s cubic-bezier(0.33, 1, 0.68, 1) 0.42s both; }
+  .aibox { animation: pop 0.36s cubic-bezier(0.34, 1.9, 0.64, 1) 0.92s both; }
+  #aiA { animation: cut 0.01s linear 1.12s both; }
+  #aiI { animation: cut 0.01s linear 1.27s both; }
+  .shine { animation: sweep 0.75s cubic-bezier(0.45, 0, 0.55, 1) 1.55s both, flash 0.75s linear 1.55s both; }
+  .badge { animation: fly 0.62s cubic-bezier(0.45, 0, 0.55, 1) 2.75s both; }
+  @keyframes glow-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes glow-out { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes grow { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+  @keyframes wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes pop { from { transform: scale(0.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes cut { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes sweep { from { transform: translateX(-260%) skewX(-18deg); } to { transform: translateX(260%) skewX(-18deg); } }
+  @keyframes flash { 0% { opacity: 0; } 49% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes fly { from { transform: translate(0, 0) scale(1); } to { transform: translate(820px, -478px) scale(0.19); } }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="glow"></div>
+  <div id="badge" class="badge"><div id="pill" class="pill"><i id="shine" class="shine"></i></div><svg id="word" class="word" viewBox="49.0535 33.3776 358.3505 73.1324" aria-label="playgama"><path d="M49.0535 97.8041V45.5664H69.2053C80.3326 45.5664 89.3572 54.5339 89.3572 65.5909C89.3572 76.6479 80.3326 85.6153 69.2053 85.6153H62.196V97.8041H49.0535ZM67.8911 57.7552H62.196V73.4265H67.8911C72.6224 73.4265 75.7766 69.944 75.7766 65.5909C75.7766 61.2377 72.6224 57.7552 67.8911 57.7552Z" fill="#ffffff" /><path d="M108.836 85.6153H95.1681V33.3776H108.836V85.6153Z" fill="#ffffff" /><path d="M154.927 85.6153H134.775C123.648 85.6153 114.623 76.6479 114.623 65.5909C114.623 54.5339 123.648 45.5664 134.775 45.5664H154.927V85.6153ZM136.089 73.4265H141.784V57.7552H136.089C131.358 57.7552 128.204 61.2377 128.204 65.5909C128.204 69.944 131.358 73.4265 136.089 73.4265Z" fill="#ffffff" /><path d="M181.065 106.51H162.841V94.3216H180.189C184.832 94.3216 188.249 90.9262 188.249 86.3118V85.6153H162.841V45.5664H175.983V73.4265H188.249V45.5664H201.392V87.1825C201.392 98.3265 192.806 106.51 181.065 106.51Z" fill="#ffffff" /><path d="M227.522 45.5664H249.426V86.3989C249.426 98.0653 240.927 106.51 229.186 106.51H211.751V93.451H229.099C233.217 93.451 236.283 90.4038 236.283 86.3118V85.6153H227.522C216.394 85.6153 207.37 76.6479 207.37 65.5909C207.37 54.5339 216.394 45.5664 227.522 45.5664ZM220.951 65.5909C220.951 69.944 224.105 73.4265 228.836 73.4265H236.283V57.7552H228.836C224.105 57.7552 220.951 61.2377 220.951 65.5909Z" fill="#ffffff" /><path d="M295.324 85.6153H275.172C264.045 85.6153 255.021 76.6479 255.021 65.5909C255.021 54.5339 264.045 45.5664 275.172 45.5664H295.324V85.6153ZM276.487 73.4265H282.182V57.7552H276.487C271.755 57.7552 268.601 61.2377 268.601 65.5909C268.601 69.944 271.755 73.4265 276.487 73.4265Z" fill="#ffffff" /><path d="M316.38 85.6153H303.238V45.5664H343.98C353.88 45.5664 361.941 53.5762 361.941 63.4143V85.6153H348.799V62.5437C348.799 59.9318 346.608 57.7552 343.98 57.7552H339.161V85.6153H326.018V57.7552H316.38V85.6153Z" fill="#ffffff" /><path d="M407.404 85.6153H387.252C376.125 85.6153 367.1 76.6479 367.1 65.5909C367.1 54.5339 376.125 45.5664 387.252 45.5664H407.404V85.6153ZM388.566 73.4265H394.262V57.7552H388.566C383.835 57.7552 380.681 61.2377 380.681 65.5909C380.681 69.944 383.835 73.4265 388.566 73.4265Z" fill="#ffffff" /></svg><svg id="aibox" class="aibox" viewBox="456.449 5.00488 134.0 123.00012" aria-label="AI"><defs><mask id="aiHoles" maskUnits="userSpaceOnUse" x="456.449" y="5.00488" width="134.0" height="123.00012"><rect x="456.449" y="5.00488" width="134.0" height="123.00012" fill="#ffffff" /><path id="aiA" d="M497.398 37.0635L477.941 97.0635H487.627L492.77 80.6064H513.084L518.228 97.0635H528.256L508.799 37.0635H497.398ZM510.513 72.292H495.342L502.97 48.0352L510.513 72.292Z" fill="#000000" fill-rule="evenodd" opacity="0" /><path id="aiI" d="M535.78 37.0635V45.8066H547.965V88.2354H535.78V97.0635H569.064V88.2354H556.965V45.8066H569.064V37.0635H535.78Z" fill="#000000" opacity="0" /></mask></defs><rect x="456.449" y="5.00488" width="134.0" height="123.00012" fill="#D2D2D2" mask="url(#aiHoles)" /></svg></div>
+</div>
+<script>
+  // fit the 1920x1080 stage into the window; a click restarts every animation
+  const fit = () => { const s = document.getElementById("stage"); s.style.transform = "scale(" + Math.min(innerWidth / 1920, innerHeight / 1080) + ")"; };
+  addEventListener("resize", fit); fit();
+  document.body.addEventListener("click", () => { const s = document.getElementById("stage"), c = s.cloneNode(true); s.replaceWith(c); fit(); });
+</script>
+</body>
+</html>

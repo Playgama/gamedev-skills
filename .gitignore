@@ -1,0 +1,5 @@
+# macOS folder settings
+.DS_Store
+
+# made when you install a skill's dependencies inside the repository
+node_modules/

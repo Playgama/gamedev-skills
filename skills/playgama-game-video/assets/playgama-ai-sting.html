@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Playgama AI sting</title>
+<style>
+  :root {
+    --page: #f4f3f7; --panel: #ffffff; --ink: #16161a; --muted: #6b6b76; --line: #e3e1ea; --accent: #9747ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --page: #121214; --panel: #1b1b1f; --ink: #f2f2f5; --muted: #9a9aa6; --line: #2c2c33; --accent: #a876ff; }
+  }
+  :root[data-theme="dark"] { --page: #121214; --panel: #1b1b1f; --ink: #f2f2f5; --muted: #9a9aa6; --line: #2c2c33; --accent: #a876ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 28px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 18px; }
+
+  /* the 16:9 frame; the 1920x1080 stage inside is scaled to fit it */
+  .frame { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 10px; background: #0e0e10;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
+  .stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; background: #0e0e10; }
+  /* where the game's video starts: a placeholder, or a screenshot of the game dropped on the frame */
+  .game { position: absolute; inset: 0; opacity: 0; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 50% 55%, #2b303b 0%, #181b22 62%, #101216 100%) center / cover no-repeat; }
+  .game::before { content: ""; position: absolute; inset: 0; background-size: 96px 96px;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px); }
+  .game span { position: relative; font: 500 44px/1.5 ui-monospace, "DM Mono", Menlo, monospace; color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.06em; text-align: center; }
+  .game.shot::before, .game.shot span { display: none; }
+  .frame.drag { outline: 3px dashed var(--accent); outline-offset: 4px; }
+  label.file { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  .plate { position: absolute; inset: 0; background: #0e0e10; }
+  .glow { position: absolute; opacity: 0; }
+  .pill, .aibox { opacity: 0; }
+
+      /* the Playgama AI logo, in parts so it can be animated: sizes and gaps from assets/playgama-ai-logo.svg */
+      .glow { inset: auto; left: 50%; top: 50%; width: 1500px; height: 900px; margin: -450px 0 0 -750px; border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(151, 71, 255, 0.42), rgba(151, 71, 255, 0.12) 55%, rgba(151, 71, 255, 0)); }
+      .badge { position: absolute; left: 50%; top: 50%; width: 1066.386px; height: 240px; margin: -120px 0 0 -533.193px;
+        transform-origin: 50% 50%; }
+      .pill { position: absolute; left: 0; top: 0; width: 823.605px; height: 240px; border-radius: 120px; background: #9747ff;
+        overflow: hidden; transform-origin: 50% 50%; }
+      .shine { position: absolute; top: -30%; bottom: -30%; left: 38%; width: 24%;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0)); }
+      .word { position: absolute; left: 88.511px; top: 60.226px; width: 646.599px; height: 131.958px; overflow: visible; }
+      .aibox { position: absolute; left: 823.605px; top: 9.031px; width: 241.786px; height: 221.938px; transform-origin: 50% 50%; }
+
+
+  /* controls */
+  .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 14px 0 6px; }
+  button { font: inherit; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; padding: 7px 11px; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+  label { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  .scrub { display: flex; align-items: center; gap: 10px; width: 100%; }
+  .scrub input { flex: 1; accent-color: var(--accent); }
+  .time { font: 13px/1 ui-monospace, "DM Mono", Menlo, monospace; min-width: 64px; text-align: right; color: var(--muted); }
+
+  /* specs */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 22px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h2 { font-size: 15px; margin: 0 0 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  td { padding: 5px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td:first-child { font-family: ui-monospace, "DM Mono", Menlo, monospace; color: var(--muted); white-space: nowrap; padding-right: 12px; }
+  tr:last-child td { border-bottom: 0; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; border: 1px solid rgba(0, 0, 0, 0.15); }
+  .static { background: #0e0e10; border-radius: 8px; padding: 22px; display: flex; justify-content: center; }
+  .static svg { width: 100%; max-width: 420px; height: auto; }
+  .row-active td { color: var(--ink); font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Playgama AI · intro sting</h1>
+  <p class="sub">Playgama's ident at the start of a video about a game: about 3 seconds, then the logo stays in the corner as a bug while the game's own video plays. Built from the official logo file, its sizes and gaps unchanged. The frame is 1920×1080, shown scaled. Drop a screenshot of your game on it to see the logo over the game; the picture stays on your computer.</p>
+
+  <div class="frame" id="frame">
+    <div class="stage" id="stage">
+      <div class="game" id="game"><span>your game starts here<br />drop a screenshot of it on this frame</span></div>
+      <div class="plate" id="plate"></div>
+      <div class="glow" id="glow"></div>
+      <div id="badge" class="badge"><div id="pill" class="pill"><i id="shine" class="shine"></i></div><svg id="word" class="word" viewBox="49.0535 33.3776 358.3505 73.1324" aria-label="playgama"><path d="M49.0535 97.8041V45.5664H69.2053C80.3326 45.5664 89.3572 54.5339 89.3572 65.5909C89.3572 76.6479 80.3326 85.6153 69.2053 85.6153H62.196V97.8041H49.0535ZM67.8911 57.7552H62.196V73.4265H67.8911C72.6224 73.4265 75.7766 69.944 75.7766 65.5909C75.7766 61.2377 72.6224 57.7552 67.8911 57.7552Z" fill="#ffffff" /><path d="M108.836 85.6153H95.1681V33.3776H108.836V85.6153Z" fill="#ffffff" /><path d="M154.927 85.6153H134.775C123.648 85.6153 114.623 76.6479 114.623 65.5909C114.623 54.5339 123.648 45.5664 134.775 45.5664H154.927V85.6153ZM136.089 73.4265H141.784V57.7552H136.089C131.358 57.7552 128.204 61.2377 128.204 65.5909C128.204 69.944 131.358 73.4265 136.089 73.4265Z" fill="#ffffff" /><path d="M181.065 106.51H162.841V94.3216H180.189C184.832 94.3216 188.249 90.9262 188.249 86.3118V85.6153H162.841V45.5664H175.983V73.4265H188.249V45.5664H201.392V87.1825C201.392 98.3265 192.806 106.51 181.065 106.51Z" fill="#ffffff" /><path d="M227.522 45.5664H249.426V86.3989C249.426 98.0653 240.927 106.51 229.186 106.51H211.751V93.451H229.099C233.217 93.451 236.283 90.4038 236.283 86.3118V85.6153H227.522C216.394 85.6153 207.37 76.6479 207.37 65.5909C207.37 54.5339 216.394 45.5664 227.522 45.5664ZM220.951 65.5909C220.951 69.944 224.105 73.4265 228.836 73.4265H236.283V57.7552H228.836C224.105 57.7552 220.951 61.2377 220.951 65.5909Z" fill="#ffffff" /><path d="M295.324 85.6153H275.172C264.045 85.6153 255.021 76.6479 255.021 65.5909C255.021 54.5339 264.045 45.5664 275.172 45.5664H295.324V85.6153ZM276.487 73.4265H282.182V57.7552H276.487C271.755 57.7552 268.601 61.2377 268.601 65.5909C268.601 69.944 271.755 73.4265 276.487 73.4265Z" fill="#ffffff" /><path d="M316.38 85.6153H303.238V45.5664H343.98C353.88 45.5664 361.941 53.5762 361.941 63.4143V85.6153H348.799V62.5437C348.799 59.9318 346.608 57.7552 343.98 57.7552H339.161V85.6153H326.018V57.7552H316.38V85.6153Z" fill="#ffffff" /><path d="M407.404 85.6153H387.252C376.125 85.6153 367.1 76.6479 367.1 65.5909C367.1 54.5339 376.125 45.5664 387.252 45.5664H407.404V85.6153ZM388.566 73.4265H394.262V57.7552H388.566C383.835 57.7552 380.681 61.2377 380.681 65.5909C380.681 69.944 383.835 73.4265 388.566 73.4265Z" fill="#ffffff" /></svg><svg id="aibox" class="aibox" viewBox="456.449 5.00488 134.0 123.00012" aria-label="AI"><defs><mask id="aiHoles" maskUnits="userSpaceOnUse" x="456.449" y="5.00488" width="134.0" height="123.00012"><rect x="456.449" y="5.00488" width="134.0" height="123.00012" fill="#ffffff" /><path id="aiA" d="M497.398 37.0635L477.941 97.0635H487.627L492.77 80.6064H513.084L518.228 97.0635H528.256L508.799 37.0635H497.398ZM510.513 72.292H495.342L502.97 48.0352L510.513 72.292Z" fill="#000000" fill-rule="evenodd" opacity="0" /><path id="aiI" d="M535.78 37.0635V45.8066H547.965V88.2354H535.78V97.0635H569.064V88.2354H556.965V45.8066H569.064V37.0635H535.78Z" fill="#000000" opacity="0" /></mask></defs><rect x="456.449" y="5.00488" width="134.0" height="123.00012" fill="#D2D2D2" mask="url(#aiHoles)" /></svg></div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <button class="primary" id="play">Play</button>
+    <button id="replay">Replay</button>
+    <span class="seg" id="speeds" aria-label="Speed">
+      <button data-s="1" aria-pressed="true">1×</button><button data-s="0.5" aria-pressed="false">0.5×</button><button data-s="0.25" aria-pressed="false">0.25×</button>
+    </span>
+    <label><input type="checkbox" id="loop" checked /> loop</label>
+    <label><input type="checkbox" id="over" checked /> the game fades up after 3 s</label>
+    <label class="file"><input type="file" id="shot" accept="image/*" hidden /> Your game's screenshot…</label>
+  </div>
+  <div class="scrub"><input type="range" id="scrub" min="0" max="4400" step="1" value="0" aria-label="Time" /><span class="time" id="time">0.00 s</span></div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Timeline</h2>
+      <table id="steps">
+        <tr data-t="0.05"><td>0.05 s</td><td>purple glow fades up behind (0.9 s)</td></tr>
+        <tr data-t="0.05"><td>0.05 s</td><td>the pill grows out from its centre (scaleX 0→1, 0.55 s, ease-out cubic)</td></tr>
+        <tr data-t="0.42"><td>0.42 s</td><td>the playgama wordmark wipes in, left to right (0.5 s)</td></tr>
+        <tr data-t="0.92"><td>0.92 s</td><td>the grey box pops in, flush against the pill (scale 0.6→1, 0.36 s, back-out)</td></tr>
+        <tr data-t="1.12"><td>1.12 s</td><td>"A" is cut out of the box, then "I" at 1.27 s</td></tr>
+        <tr data-t="1.55"><td>1.55 s</td><td>a band of light crosses the pill (0.75 s)</td></tr>
+        <tr data-t="2.75"><td>2.75 s</td><td>the logo flies to the top-right corner at 19% size (0.62 s, ease-in-out), 39 px from the top and the right; the glow fades</td></tr>
+        <tr data-t="3.0"><td>3.00 s</td><td>the video fades up underneath; the logo stays as the corner bug</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h2>The logo (official file, 591×133)</h2>
+      <div class="static"><svg viewBox="0 0 591 133" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M456.449 66.5049C456.449 103.235 426.674 133.01 389.944 133.01H66.5049C29.7753 133.01 0 103.235 0 66.5049C0 29.7753 29.7753 0 66.5049 0H389.944C426.674 0 456.449 29.7753 456.449 66.5049Z" fill="#9747FF"/>
+<path d="M590.449 128.005H456.449V5.00488H590.449V128.005ZM497.398 37.0635L477.941 97.0635H487.627L492.77 80.6064H513.084L518.228 97.0635H528.256L508.799 37.0635H497.398ZM535.78 37.0635V45.8066H547.965V88.2354H535.78V97.0635H569.064V88.2354H556.965V45.8066H569.064V37.0635H535.78ZM510.513 72.292H495.342L502.97 48.0352L510.513 72.292Z" fill="#D2D2D2"/>
+<path d="M49.0535 97.8041V45.5664H69.2053C80.3326 45.5664 89.3572 54.5339 89.3572 65.5909C89.3572 76.6479 80.3326 85.6153 69.2053 85.6153H62.196V97.8041H49.0535ZM67.8911 57.7552H62.196V73.4265H67.8911C72.6224 73.4265 75.7766 69.944 75.7766 65.5909C75.7766 61.2377 72.6224 57.7552 67.8911 57.7552Z" fill="white"/>
+<path d="M108.836 85.6153H95.1681V33.3776H108.836V85.6153Z" fill="white"/>
+<path d="M154.927 85.6153H134.775C123.648 85.6153 114.623 76.6479 114.623 65.5909C114.623 54.5339 123.648 45.5664 134.775 45.5664H154.927V85.6153ZM136.089 73.4265H141.784V57.7552H136.089C131.358 57.7552 128.204 61.2377 128.204 65.5909C128.204 69.944 131.358 73.4265 136.089 73.4265Z" fill="white"/>
+<path d="M181.065 106.51H162.841V94.3216H180.189C184.832 94.3216 188.249 90.9262 188.249 86.3118V85.6153H162.841V45.5664H175.983V73.4265H188.249V45.5664H201.392V87.1825C201.392 98.3265 192.806 106.51 181.065 106.51Z" fill="white"/>
+<path d="M227.522 45.5664H249.426V86.3989C249.426 98.0653 240.927 106.51 229.186 106.51H211.751V93.451H229.099C233.217 93.451 236.283 90.4038 236.283 86.3118V85.6153H227.522C216.394 85.6153 207.37 76.6479 207.37 65.5909C207.37 54.5339 216.394 45.5664 227.522 45.5664ZM220.951 65.5909C220.951 69.944 224.105 73.4265 228.836 73.4265H236.283V57.7552H228.836C224.105 57.7552 220.951 61.2377 220.951 65.5909Z" fill="white"/>
+<path d="M295.324 85.6153H275.172C264.045 85.6153 255.021 76.6479 255.021 65.5909C255.021 54.5339 264.045 45.5664 275.172 45.5664H295.324V85.6153ZM276.487 73.4265H282.182V57.7552H276.487C271.755 57.7552 268.601 61.2377 268.601 65.5909C268.601 69.944 271.755 73.4265 276.487 73.4265Z" fill="white"/>
+<path d="M316.38 85.6153H303.238V45.5664H343.98C353.88 45.5664 361.941 53.5762 361.941 63.4143V85.6153H348.799V62.5437C348.799 59.9318 346.608 57.7552 343.98 57.7552H339.161V85.6153H326.018V57.7552H316.38V85.6153Z" fill="white"/>
+<path d="M407.404 85.6153H387.252C376.125 85.6153 367.1 76.6479 367.1 65.5909C367.1 54.5339 376.125 45.5664 387.252 45.5664H407.404V85.6153ZM388.566 73.4265H394.262V57.7552H388.566C383.835 57.7552 380.681 61.2377 380.681 65.5909C380.681 69.944 383.835 73.4265 388.566 73.4265Z" fill="white"/>
+</svg>
+</div>
+      <table style="margin-top:12px">
+        <tr><td>pill</td><td><span class="sw" style="background:#9747ff"></span>#9747FF · 456.4×133, fully rounded</td></tr>
+        <tr><td>wordmark</td><td><span class="sw" style="background:#fff"></span>white · 358.4 wide, 49 in from each end of the pill</td></tr>
+        <tr><td>AI box</td><td><span class="sw" style="background:#d2d2d2"></span>#D2D2D2 · 134×123, flush against the pill's end, 5 in from top and bottom</td></tr>
+        <tr><td>"AI"</td><td>cut out of the box (transparent): 60 high, centred, 21.5 in from each side</td></tr>
+        <tr><td>in the video</td><td>240 px tall in a 1920×1080 frame (scale 1.804); the corner bug is 19% of that</td></tr>
+        <tr><td>background</td><td><span class="sw" style="background:#0e0e10"></span>#0E0E10 onyx · glow rgba(151, 71, 255, .42)</td></tr>
+      </table>
+    </div>
+  </div>
+</main>
+
+<script>
+  // Every part of the sting as a Web Animation, all paused and driven from one clock, so the page can play it at any
+  // speed, loop it and scrub it. Times and easings are those of the video template (GSAP power3.out, back.out(2),
+  // power2.inOut, sine) in cubic-bezier form.
+  const E = {
+    out2: "cubic-bezier(0.5, 1, 0.89, 1)", out3: "cubic-bezier(0.33, 1, 0.68, 1)", inout2: "cubic-bezier(0.45, 0, 0.55, 1)",
+    back: "cubic-bezier(0.34, 1.9, 0.64, 1)", sineOut: "cubic-bezier(0.61, 1, 0.88, 1)", sineIn: "cubic-bezier(0.12, 0, 0.39, 0)", lin: "linear",
+  };
+  const $ = (id) => document.getElementById(id);
+  const anims = [];
+  const at = (el, frames, start, dur, easing, fill = "both") => {
+    const a = $(el).animate(frames, { delay: start * 1000, duration: dur * 1000, easing, fill });
+    a.pause(); anims.push(a); return a;
+  };
+  at("glow", [{ opacity: 0 }, { opacity: 1 }], 0.05, 0.9, E.out2);
+  at("pill", [{ transform: "scaleX(0)", opacity: 0 }, { transform: "scaleX(1)", opacity: 1 }], 0.05, 0.55, E.out3);
+  at("word", [{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)" }], 0.42, 0.5, E.out3);
+  at("aibox", [{ transform: "scale(0.6)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }], 0.92, 0.36, E.back);
+  at("aiA", [{ opacity: 0 }, { opacity: 1 }], 1.12, 0.01, E.lin);
+  at("aiI", [{ opacity: 0 }, { opacity: 1 }], 1.27, 0.01, E.lin);
+  at("shine", [{ transform: "translateX(-260%) skewX(-18deg)" }, { transform: "translateX(260%) skewX(-18deg)" }], 1.55, 0.75, E.inout2);
+  at("shine", [{ opacity: 0, offset: 0 }, { opacity: 1, offset: 0.49, easing: E.sineIn }, { opacity: 0, offset: 1 }], 1.55, 0.75, E.sineOut);
+  at("badge", [{ transform: "translate(0px, 0px) scale(1)" }, { transform: "translate(820px, -478px) scale(0.19)" }], 2.75, 0.62, E.inout2);
+  at("glow", [{ opacity: 1 }, { opacity: 0 }], 2.75, 0.4, E.out2, "forwards");
+  at("plate", [{ opacity: 1 }, { opacity: 0 }], 3.0, 0.4, E.out2);
+  at("game", [{ opacity: 0 }, { opacity: 1 }], 3.0, 0.4, E.out2);
+
+  const END = 4.4;
+  let t = 0, speed = 1, playing = false, last = 0;
+  const rows = [...document.querySelectorAll("#steps tr")];
+  function seek(s) {
+    t = Math.max(0, Math.min(END, s));
+    for (const a of anims) a.currentTime = t * 1000;
+    $("scrub").value = String(Math.round(t * 1000));
+    $("time").textContent = t.toFixed(2) + " s";
+    let lit = -1;
+    rows.forEach((r, i) => { if (t >= parseFloat(r.dataset.t)) lit = i; });
+    rows.forEach((r, i) => r.classList.toggle("row-active", i === lit));
+  }
+  function frame(now) {
+    if (!playing) return;
+    const dt = (now - last) / 1000; last = now;
+    let n = t + dt * speed;
+    if (n >= END) { if ($("loop").checked) n = 0; else { seek(END); stop(); return; } }
+    seek(n);
+    requestAnimationFrame(frame);
+  }
+  function play() { if (t >= END) seek(0); playing = true; last = performance.now(); $("play").textContent = "Pause"; requestAnimationFrame(frame); }
+  function stop() { playing = false; $("play").textContent = "Play"; }
+  $("play").onclick = () => (playing ? stop() : play());
+  $("replay").onclick = () => { seek(0); play(); };
+  $("scrub").oninput = (e) => { stop(); seek(+e.target.value / 1000); };
+  for (const b of document.querySelectorAll("#speeds button")) b.onclick = () => {
+    speed = +b.dataset.s;
+    for (const x of document.querySelectorAll("#speeds button")) x.setAttribute("aria-pressed", String(x === b));
+  };
+  $("over").onchange = (e) => { $("game").style.visibility = e.target.checked ? "visible" : "hidden"; };
+
+  // a screenshot of the game, chosen or dropped on the frame, shown where the game's video starts (it is never uploaded)
+  const show = (file) => {
+    if (!file || !file.type.startsWith("image/")) return;
+    $("game").style.backgroundImage = `url("${URL.createObjectURL(file)}")`;
+    $("game").classList.add("shot");
+    seek(0); play();
+  };
+  $("shot").onchange = (e) => show(e.target.files[0]);
+  $("frame").addEventListener("dragover", (e) => { e.preventDefault(); $("frame").classList.add("drag"); });
+  $("frame").addEventListener("dragleave", () => $("frame").classList.remove("drag"));
+  $("frame").addEventListener("drop", (e) => { e.preventDefault(); $("frame").classList.remove("drag"); show(e.dataTransfer.files[0]); });
+
+  // the 1920x1080 stage, scaled to whatever width the frame has
+  const fit = () => { $("stage").style.transform = `scale(${$("frame").clientWidth / 1920})`; };
+  new ResizeObserver(fit).observe($("frame")); fit();
+  seek(0); play();
+</script>
+</body>
+</html>

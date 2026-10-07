@@ -1,0 +1,128 @@
+<!doctype html>
+<!--
+  A starter HyperFrames composition for a video about a game (1920x1080, 30 fps).
+  0.0-3.4 s  Playgama's ident, the Playgama AI sting: the pill grows, the wordmark wipes in, "AI" is cut into the grey
+             box, a shine crosses, then the logo flies to the top-right corner and stays there as a small bug for the
+             whole video. It is drawn from assets/playgama-ai-logo.svg's own shapes and gaps and keeps its own colours.
+  3.0 s ...  the game's video, in the game's own look: gameplay clips (filmed frame by frame with scripts/film.mjs), a
+             title over the first one, and an end card. Fill THE GAME'S LOOK below from the game
+             (references/game-look.md), then replace the clips, the words, the audio and the durations.
+  Render:    npx hyperframes@0.8.38 render . -o renders/my-game.mp4      (check first: npx hyperframes@0.8.38 check .)
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>My game · made for Playgama</title>
+    <style>
+      /* THE GAME'S LOOK: everything after the sting wears it. Take every value from the game itself: its theme or CSS,
+         its menus and HUD, its font files (references/game-look.md). The defaults are a neutral placeholder.
+         Fonts: all three match the game. Copy them into fonts/ and point these src lines at them; DM Mono only holds
+         their places until then (SIL OFL 1.1, fonts/OFL.txt). */
+      @font-face { font-family: "Game Title"; font-display: block; src: url("fonts/dm-mono-500-latin.woff2") format("woff2"); } /* its title or logo font */
+      @font-face { font-family: "Game Text"; font-display: block; src: url("fonts/dm-mono-400-latin.woff2") format("woff2"); } /* its UI font */
+      @font-face { font-family: "Game Code"; font-display: block; src: url("fonts/dm-mono-400-latin.woff2") format("woff2"); } /* a monospace in its spirit: code, tool calls */
+      :root {
+        --game-bg: #111114;                     /* the darkest colour of its UI: menu backgrounds, panel fills */
+        --game-panel: rgba(17, 17, 20, 0.86);   /* the fill of its panels and dialog boxes */
+        --game-line: rgba(255, 255, 255, 0.2);  /* their outline */
+        --game-radius: 12px;                    /* their corners: 0 for pixel art or a hard-edged UI, large for a soft one */
+        --game-text: #f2f2f2;                   /* its UI text */
+        --game-accent: #f2f2f2;                 /* its main button */
+        --game-on-accent: #111114;              /* the text on that button */
+        --game-highlight: #f2f2f2;              /* its bright colour for words that stand out: a score, a key, a link */
+        --game-case: uppercase;                 /* none if it writes its titles in mixed case */
+        --game-title-spacing: 0.02em;           /* the letter spacing of its titles */
+        --game-title-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);   /* its titles' glow, shadow or outline */
+      }
+
+      html, body { margin: 0; width: 1920px; height: 1080px; background: var(--game-bg); overflow: hidden; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--game-bg); color: var(--game-text);
+        font-family: "Game Text", sans-serif; }
+      .clip { position: absolute; inset: 0; }
+
+      /* gameplay, full frame */
+      video.game { width: 100%; height: 100%; object-fit: cover; }
+
+      /* a line over the picture: the picture darkens from below in the game's own background colour, the words sit low */
+      .title { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 110px;
+        background: linear-gradient(to top, color-mix(in srgb, var(--game-bg) 90%, transparent) 0%,
+          color-mix(in srgb, var(--game-bg) 55%, transparent) 24%, transparent 46%); }
+      .title b { font-family: "Game Title", sans-serif; font-weight: normal; font-size: 96px; letter-spacing: var(--game-title-spacing);
+        text-transform: var(--game-case); text-shadow: var(--game-title-shadow); }
+      .title span { margin-top: 18px; font-size: 40px; color: var(--game-highlight); text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8); }
+
+      /* the end card: the game's name (or its own logo, <img src="art/logo.png" />) and a button like the game's buttons */
+      .end { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 34px; background: var(--game-bg); }
+      .end b { font-family: "Game Title", sans-serif; font-weight: normal; font-size: 92px; letter-spacing: var(--game-title-spacing);
+        text-transform: var(--game-case); text-shadow: var(--game-title-shadow); }
+      .end span { font-size: 44px; padding: 14px 34px; border: 2px solid var(--game-line); border-radius: var(--game-radius);
+        background: var(--game-accent); color: var(--game-on-accent); text-transform: var(--game-case); }
+
+      /* the Playgama AI logo, in parts so it can be animated: sizes and gaps from assets/playgama-ai-logo.svg */
+      .glow { inset: auto; left: 50%; top: 50%; width: 1500px; height: 900px; margin: -450px 0 0 -750px; border-radius: 50%;
+        background: radial-gradient(closest-side, rgba(151, 71, 255, 0.42), rgba(151, 71, 255, 0.12) 55%, rgba(151, 71, 255, 0)); }
+      .badge { position: absolute; left: 50%; top: 50%; width: 1066.386px; height: 240px; margin: -120px 0 0 -533.193px;
+        transform-origin: 50% 50%; }
+      .pill { position: absolute; left: 0; top: 0; width: 823.605px; height: 240px; border-radius: 120px; background: #9747ff;
+        overflow: hidden; transform-origin: 50% 50%; }
+      .shine { position: absolute; top: -30%; bottom: -30%; left: 38%; width: 24%;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0)); }
+      .word { position: absolute; left: 88.511px; top: 60.226px; width: 646.599px; height: 131.958px; overflow: visible; }
+      .aibox { position: absolute; left: 823.605px; top: 9.031px; width: 241.786px; height: 221.938px; transform-origin: 50% 50%; }
+
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="20" data-fps="30" data-width="1920" data-height="1080">
+      <!-- gameplay: one clip per beat, each a few seconds of the game at its best (muted: sound comes from <audio>) -->
+      <video id="g1" class="clip game" src="clips/gameplay-1.mp4" data-start="3.0" data-duration="5" muted playsinline></video>
+      <video id="g2" class="clip game" src="clips/gameplay-2.mp4" data-start="8.0" data-duration="4.5" muted playsinline></video>
+      <video id="g3" class="clip game" src="clips/gameplay-3.mp4" data-start="12.5" data-duration="4" muted playsinline></video>
+
+      <div id="t1" class="clip title" data-start="3.4" data-duration="4.6"><b>My Game</b><span>made with an AI agent in one day</span></div>
+      <div id="end" class="clip end" data-start="16.5" data-duration="3.5"><b>My Game</b><span>Play free on Playgama</span></div>
+
+      <!-- Playgama's ident, on top of everything: its own dark plate and glow, then the logo, which stays as the corner bug -->
+      <div id="plate" class="clip" data-start="0" data-duration="3.4" style="background: #0e0e10"></div>
+      <div id="glow" class="clip glow" data-start="0" data-duration="3.4"></div>
+      <div id="brand" class="clip" data-start="0" data-duration="20">
+        <div id="badge" class="badge"><div id="pill" class="pill"><i id="shine" class="shine"></i></div><svg id="word" class="word" viewBox="49.0535 33.3776 358.3505 73.1324" aria-label="playgama"><path d="M49.0535 97.8041V45.5664H69.2053C80.3326 45.5664 89.3572 54.5339 89.3572 65.5909C89.3572 76.6479 80.3326 85.6153 69.2053 85.6153H62.196V97.8041H49.0535ZM67.8911 57.7552H62.196V73.4265H67.8911C72.6224 73.4265 75.7766 69.944 75.7766 65.5909C75.7766 61.2377 72.6224 57.7552 67.8911 57.7552Z" fill="#ffffff" /><path d="M108.836 85.6153H95.1681V33.3776H108.836V85.6153Z" fill="#ffffff" /><path d="M154.927 85.6153H134.775C123.648 85.6153 114.623 76.6479 114.623 65.5909C114.623 54.5339 123.648 45.5664 134.775 45.5664H154.927V85.6153ZM136.089 73.4265H141.784V57.7552H136.089C131.358 57.7552 128.204 61.2377 128.204 65.5909C128.204 69.944 131.358 73.4265 136.089 73.4265Z" fill="#ffffff" /><path d="M181.065 106.51H162.841V94.3216H180.189C184.832 94.3216 188.249 90.9262 188.249 86.3118V85.6153H162.841V45.5664H175.983V73.4265H188.249V45.5664H201.392V87.1825C201.392 98.3265 192.806 106.51 181.065 106.51Z" fill="#ffffff" /><path d="M227.522 45.5664H249.426V86.3989C249.426 98.0653 240.927 106.51 229.186 106.51H211.751V93.451H229.099C233.217 93.451 236.283 90.4038 236.283 86.3118V85.6153H227.522C216.394 85.6153 207.37 76.6479 207.37 65.5909C207.37 54.5339 216.394 45.5664 227.522 45.5664ZM220.951 65.5909C220.951 69.944 224.105 73.4265 228.836 73.4265H236.283V57.7552H228.836C224.105 57.7552 220.951 61.2377 220.951 65.5909Z" fill="#ffffff" /><path d="M295.324 85.6153H275.172C264.045 85.6153 255.021 76.6479 255.021 65.5909C255.021 54.5339 264.045 45.5664 275.172 45.5664H295.324V85.6153ZM276.487 73.4265H282.182V57.7552H276.487C271.755 57.7552 268.601 61.2377 268.601 65.5909C268.601 69.944 271.755 73.4265 276.487 73.4265Z" fill="#ffffff" /><path d="M316.38 85.6153H303.238V45.5664H343.98C353.88 45.5664 361.941 53.5762 361.941 63.4143V85.6153H348.799V62.5437C348.799 59.9318 346.608 57.7552 343.98 57.7552H339.161V85.6153H326.018V57.7552H316.38V85.6153Z" fill="#ffffff" /><path d="M407.404 85.6153H387.252C376.125 85.6153 367.1 76.6479 367.1 65.5909C367.1 54.5339 376.125 45.5664 387.252 45.5664H407.404V85.6153ZM388.566 73.4265H394.262V57.7552H388.566C383.835 57.7552 380.681 61.2377 380.681 65.5909C380.681 69.944 383.835 73.4265 388.566 73.4265Z" fill="#ffffff" /></svg><svg id="aibox" class="aibox" viewBox="456.449 5.00488 134.0 123.00012" aria-label="AI"><defs><mask id="aiHoles" maskUnits="userSpaceOnUse" x="456.449" y="5.00488" width="134.0" height="123.00012"><rect x="456.449" y="5.00488" width="134.0" height="123.00012" fill="#ffffff" /><path id="aiA" d="M497.398 37.0635L477.941 97.0635H487.627L492.77 80.6064H513.084L518.228 97.0635H528.256L508.799 37.0635H497.398ZM510.513 72.292H495.342L502.97 48.0352L510.513 72.292Z" fill="#000000" fill-rule="evenodd" opacity="0" /><path id="aiI" d="M535.78 37.0635V45.8066H547.965V88.2354H535.78V97.0635H569.064V88.2354H556.965V45.8066H569.064V37.0635H535.78Z" fill="#000000" opacity="0" /></mask></defs><rect x="456.449" y="5.00488" width="134.0" height="123.00012" fill="#D2D2D2" mask="url(#aiHoles)" /></svg></div>
+      </div>
+
+      <!-- sound: a music bed under everything (the game's own music if it has some), the voice over the gameplay -->
+      <audio id="music" src="audio/music.mp3" data-start="0" data-duration="20" data-volume="0.35"></audio>
+      <audio id="voice" src="audio/voice.mp3" data-start="3.2" data-duration="13"></audio>
+    </div>
+
+    <script src="gsap.min.js"></script>
+    <script>
+      // resting states before their tweens run (one baseline per element keeps seeking exact)
+      gsap.set("#shine", { xPercent: -260, opacity: 0 });
+      const tl = gsap.timeline({ paused: true });
+      // 1 · Playgama's ident, the Playgama AI sting (keep its times and colours: it is the same in every video)
+      tl.fromTo("#glow", { opacity: 0 }, { opacity: 1, duration: 0.9, ease: "power2.out" }, 0.05)
+        .fromTo("#pill", { scaleX: 0, opacity: 0 }, { scaleX: 1, opacity: 1, duration: 0.55, ease: "power3.out" }, 0.05)
+        .fromTo("#word", { clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0% 0 0)", duration: 0.5, ease: "power3.out" }, 0.42)
+        .fromTo("#aibox", { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.36, ease: "back.out(2)" }, 0.92)
+        // "A", then "I", are cut out of the grey box (the logo's letters are holes)
+        .fromTo("#aiA", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 1.12)
+        .fromTo("#aiI", { opacity: 0 }, { opacity: 1, duration: 0.01 }, 1.27)
+        .to("#shine", { xPercent: 260, duration: 0.75, ease: "power2.inOut" }, 1.55)
+        .to("#shine", { opacity: 1, duration: 0.37, ease: "sine.out" }, 1.55)
+        .to("#shine", { opacity: 0, duration: 0.38, ease: "sine.in" }, 1.92)
+        // ... then it flies to the top-right corner and stays there as the bug (39 px from the top and the right)
+        .to("#badge", { x: 820, y: -478, scale: 0.19, duration: 0.62, ease: "power2.inOut" }, 2.75)
+        .to("#glow", { opacity: 0, duration: 0.4 }, 2.75)
+        .to("#plate", { opacity: 0, duration: 0.4 }, 3.0)
+        // 2 · the game's video: the title rises over the first clip, the end card lands. Move like the game's own UI
+        //     moves: an overshoot for a bouncy game, slow fades for a calm or dark one (references/game-look.md)
+        .fromTo("#t1 b", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: "power3.out" }, 3.5)
+        .fromTo("#t1 span", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, ease: "power3.out" }, 3.8)
+        .fromTo("#end b", { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.6)" }, 16.6)
+        .fromTo("#end span", { y: 16, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power3.out" }, 17.0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
